@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Memories</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #cdeffd 0%, #a8d8ea 45%, #7fc4e0 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Floating liquid-glass blobs in the background */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.55;
+            z-index: -1;
+            animation: float 18s ease-in-out infinite;
+        }
+
+        .blob.one   { width: 420px; height: 420px; top: -120px; left: -80px;
+                      background: radial-gradient(circle at 30% 30%, #e3f6ff, #8fd3f4); }
+        .blob.two   { width: 360px; height: 360px; bottom: -100px; right: -60px;
+                      background: radial-gradient(circle at 30% 30%, #d4f0ff, #6bb6d6);
+                      animation-delay: -6s; }
+        .blob.three { width: 300px; height: 300px; top: 40%; left: 60%;
+                      background: radial-gradient(circle at 30% 30%, #ffffff, #aee0f5);
+                      animation-delay: -12s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%      { transform: translate(40px, -30px) scale(1.08); }
+            66%      { transform: translate(-30px, 20px) scale(0.95); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 40px 30px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(99, 161, 196, 0.25),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.6);
+        }
+
+        h1 {
+            color: #3a7a93;
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(255, 255, 255, 0.6);
+        }
+
+        .subtitle {
+            color: #5a9fbf;
+            font-size: 1.2em;
+            font-weight: 300;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px) saturate(150%);
+            -webkit-backdrop-filter: blur(10px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 24px rgba(99, 161, 196, 0.22),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.55);
+            padding: 8px;
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                        box-shadow 0.35s ease;
+            cursor: pointer;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 18px 40px rgba(99, 161, 196, 0.4),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.7);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            display: block;
+            border-radius: 12px;
+        }
+
+        .gallery-item video {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            display: block;
+            border-radius: 12px;
+        }
+
+        .overlay {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            background: rgba(58, 122, 147, 0.35);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 0 0 12px 12px;
+            padding: 15px;
+            color: white;
+            font-size: 0.9em;
+            transform: translateY(110%);
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item:hover .overlay {
+            transform: translateY(0);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(122, 180, 205, 0.3);
+            backdrop-filter: blur(16px) saturate(140%);
+            -webkit-backdrop-filter: blur(16px) saturate(140%);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 90%;
+            height: 100%;
+            max-width: 900px;
+        }
+
+        .modal-content img,
+        .modal-content video {
+            max-width: 100%;
+            max-height: 85vh;
+            border-radius: 8px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close {
+            position: absolute;
+            right: 30px;
+            top: 20px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .close:hover {
+            transform: scale(1.2);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 24px;
+            color: #3a7a93;
+            font-size: 0.95em;
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(14px) saturate(150%);
+            -webkit-backdrop-filter: blur(14px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(99, 161, 196, 0.2),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.55);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                gap: 15px;
+            }
+
+            .gallery-item img,
+            .gallery-item video {
+                height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="blob one"></div>
+    <div class="blob two"></div>
+    <div class="blob three"></div>
+
+    <div class="container">
+        <header>
+            <h1>🐾 Pet Memories 🐾</h1>
+            <p class="subtitle">Precious moments with beloved companions</p>
+        </header>
+
+        <div class="gallery" id="gallery">
+            <!-- Images will be loaded here by JavaScript -->
+        </div>
+
+        <footer>
+            <p>🤍 Forever in our hearts 🤍</p>
+        </footer>
+    </div>
+
+    <div id="modal" class="modal">
+        <span class="close">&times;</span>
+        <div class="modal-content" id="modalContent">
+        </div>
+    </div>
+
+    <script>
+        const gallery = document.getElementById('gallery');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modalContent');
+        const closeBtn = document.querySelector('.close');
+
+        // List of image files (update this with your actual filenames)
+        const images = [
+            { name: '20191125_113631.jpg', type: 'image' },
+            { name: '20191125_113636.jpg', type: 'image' },
+            { name: '20191201_012434.mp4', type: 'video' },
+            { name: '20191218_144647.jpg', type: 'image' },
+            { name: '20191219_180928.mp4', type: 'video' },
+            { name: '20191221_155735.jpg', type: 'image' },
+            { name: '20200105_165841.mp4', type: 'video' },
+            { name: '20200105_165855.mp4', type: 'video' },
+            { name: '20200111_142331.jpg', type: 'image' },
+            { name: '20200112_110939.jpg', type: 'image' },
+            { name: '20200116_190807.jpg', type: 'image' },
+            { name: '20200116_190810.jpg', type: 'image' },
+            { name: '20200117_024057.jpg', type: 'image' },
+            { name: '20200124_161035.jpg', type: 'image' },
+            { name: '20200124_161050.jpg', type: 'image' },
+            { name: '20200125_141249.jpg', type: 'image' },
+            { name: '20200125_141251.jpg', type: 'image' },
+            { name: '20200210_154423.jpg', type: 'image' },
+            { name: '20200219_122614.jpg', type: 'image' },
+            { name: '20200219_132713.jpg', type: 'image' },
+            { name: '20200219_132716.jpg', type: 'image' },
+            { name: '20200219_132718.jpg', type: 'image' },
+            { name: '20200221_095921.jpg', type: 'image' },
+            { name: '20200303_153415.jpg', type: 'image' },
+            { name: '20200320_121959.jpg', type: 'image' },
+            { name: '20200320_122009.jpg', type: 'image' },
+            { name: '20200320_122014.jpg', type: 'image' },
+            { name: '20200324_013200.jpg', type: 'image' },
+            { name: '20200324_013206.jpg', type: 'image' },
+            { name: '20200326_013438.jpg', type: 'image' },
+            { name: '20200403_001812.mp4', type: 'video' },
+            { name: '20200403_001847.mp4', type: 'video' },
+            { name: '20200412_152345.jpg', type: 'image' },
+            { name: '20200412_152356.jpg', type: 'image' },
+            { name: '20200506_010804.jpg', type: 'image' },
+            { name: '20200506_010824.jpg', type: 'image' },
+            { name: '20200506_010856.jpg', type: 'image' },
+            { name: '20200508_205754.jpg', type: 'image' },
+            { name: '20200508_205802.jpg', type: 'image' },
+            { name: '20200516_021204.jpg', type: 'image' },
+            { name: '20200519_155056.jpg', type: 'image' },
+            { name: '20200602_012213.jpg', type: 'image' },
+            { name: '20200605_010741.jpg', type: 'image' },
+            { name: '20200605_010743.jpg', type: 'image' },
+            { name: '20200610_192759.jpg', type: 'image' },
+            { name: '20200613_233757.jpg', type: 'image' },
+            { name: '20200613_233810.jpg', type: 'image' },
+            { name: '20200613_234037.jpg', type: 'image' },
+            { name: '20200614_011921.mp4', type: 'video' },
+            { name: '20200623_150059.jpg', type: 'image' },
+            { name: '20200623_150125.jpg', type: 'image' },
+            { name: '20200623_150130.jpg', type: 'image' },
+            { name: '20200716_223540.jpg', type: 'image' },
+            { name: '20200716_223546.jpg', type: 'image' },
+            { name: '20200716_223547.jpg', type: 'image' },
+            { name: '20200716_223554.jpg', type: 'image' },
+            { name: '20200716_223619.jpg', type: 'image' },
+            { name: '20200716_223635.jpg', type: 'image' },
+            { name: '20200716_223636.jpg', type: 'image' },
+            { name: '20200716_223705.jpg', type: 'image' },
+            { name: '20200717_000536.jpg', type: 'image' },
+            { name: '20200717_000544.jpg', type: 'image' },
+            { name: '20200717_000545.jpg', type: 'image' },
+            { name: '20200718_000226.jpg', type: 'image' },
+            { name: '20200718_000230.jpg', type: 'image' },
+            { name: '20200718_000232.jpg', type: 'image' },
+            { name: '20200720_025649.jpg', type: 'image' },
+            { name: '20200725_035535.jpg', type: 'image' },
+            { name: '20200813_050512.jpg', type: 'image' },
+            { name: '20200914_014750.jpg', type: 'image' },
+            { name: '20200914_015946.jpg', type: 'image' },
+            { name: '20200914_015950.jpg', type: 'image' },
+            { name: '20200917_000421.jpg', type: 'image' },
+            { name: '20200919_143105.jpg', type: 'image' },
+            { name: '20201005_010731.jpg', type: 'image' },
+            { name: '20201005_190148.jpg', type: 'image' },
+            { name: '20201016_183631.jpg', type: 'image' },
+            { name: '20201025_185109.jpg', type: 'image' },
+            { name: '20201025_185118.jpg', type: 'image' },
+            { name: '20201025_185148.jpg', type: 'image' },
+            { name: '20201025_185153.jpg', type: 'image' },
+            { name: '20201030_214340.jpg', type: 'image' },
+            { name: '20201030_214356.jpg', type: 'image' },
+            { name: '20201030_214414.jpg', type: 'image' },
+            { name: '20201101_004025.jpg', type: 'image' },
+            { name: '20201101_004032.jpg', type: 'image' },
+            { name: '20201101_021944.jpg', type: 'image' },
+            { name: '20201101_021952.jpg', type: 'image' },
+            { name: '20201103_032904.jpg', type: 'image' },
+            { name: '20201105_024038.jpg', type: 'image' },
+            { name: '20201115_221857.jpg', type: 'image' },
+            { name: '20201115_221910.jpg', type: 'image' },
+            { name: '20201130_034640.jpg', type: 'image' },
+            { name: '20201130_034735.jpg', type: 'image' },
+            { name: '20201130_034805.jpg', type: 'image' },
+            { name: '20201202_001145.jpg', type: 'image' },
+            { name: '20201202_001153.jpg', type: 'image' },
+            { name: '20201202_001154.jpg', type: 'image' },
+            { name: '20201202_001158.jpg', type: 'image' },
+            { name: '20201202_001200.jpg', type: 'image' },
+            { name: '20201202_001240.jpg', type: 'image' },
+            { name: '20201202_001331.jpg', type: 'image' },
+            { name: '20201202_001334.jpg', type: 'image' },
+            { name: '20201202_001335.jpg', type: 'image' },
+            { name: '20201203_200836.jpg', type: 'image' },
+            { name: '20201209_221105.jpg', type: 'image' },
+            { name: '20201212_234242.jpg', type: 'image' },
+            { name: '20201212_234250.jpg', type: 'image' },
+            { name: '20201216_062903.jpg', type: 'image' },
+            { name: '20201216_062907.jpg', type: 'image' },
+            { name: '20201222_165123.jpg', type: 'image' },
+            { name: '20201222_172726.jpg', type: 'image' },
+            { name: '20201225_005709.jpg', type: 'image' },
+            { name: '20201225_005712.jpg', type: 'image' },
+            { name: '20201230_000252.mp4', type: 'video' },
+            { name: '20210101_012836.jpg', type: 'image' },
+            { name: '20210101_012850.jpg', type: 'image' },
+            { name: '20210101_062804.mp4', type: 'video' },
+            { name: '20210113_023335.jpg', type: 'image' },
+            { name: '20210113_154304.jpg', type: 'image' },
+            { name: '20210113_154307.jpg', type: 'image' },
+            { name: '20210115_231828.jpg', type: 'image' },
+            { name: '20210115_231837.jpg', type: 'image' },
+            { name: '20210115_231843.jpg', type: 'image' },
+            { name: '20210115_231847.jpg', type: 'image' },
+            { name: '20210115_231908.jpg', type: 'image' },
+            { name: '20210115_232025.jpg', type: 'image' },
+            { name: '20210115_232122.jpg', type: 'image' },
+            { name: '20210115_232523.jpg', type: 'image' },
+            { name: '20210115_232529.jpg', type: 'image' },
+            { name: '20210115_232530.jpg', type: 'image' },
+            { name: '20210115_232532.jpg', type: 'image' },
+            { name: '20210115_232559.jpg', type: 'image' },
+            { name: '20210129_205915.jpg', type: 'image' },
+            { name: '20210129_205921.jpg', type: 'image' },
+            { name: '20210129_205928.jpg', type: 'image' },
+            { name: '20210206_211739.jpg', type: 'image' },
+            { name: '20210215_133907.jpg', type: 'image' },
+            { name: '20210221_145837.jpg', type: 'image' },
+            { name: '20210221_145851.mp4', type: 'video' },
+            { name: '20210303_105009.jpg', type: 'image' },
+            { name: '20210303_105013.jpg', type: 'image' },
+            { name: '20210303_105037.jpg', type: 'image' },
+            { name: '20210303_185830.jpg', type: 'image' },
+            { name: '20210303_185848.jpg', type: 'image' },
+            { name: '20210304_171500.jpg', type: 'image' },
+            { name: '20210304_171506.jpg', type: 'image' },
+            { name: '20210304_171635.jpg', type: 'image' },
+            { name: '20210304_171640.jpg', type: 'image' },
+            { name: '20210304_171655.jpg', type: 'image' },
+            { name: '20210304_171712.jpg', type: 'image' },
+            { name: '20210304_171714.jpg', type: 'image' },
+            { name: '20210312_164450.jpg', type: 'image' },
+            { name: '20210312_164458.jpg', type: 'image' },
+            { name: '20210318_202839.jpg', type: 'image' },
+            { name: '20210318_202853.jpg', type: 'image' },
+            { name: '20210323_210230.jpg', type: 'image' },
+            { name: '20210323_210235.jpg', type: 'image' },
+            { name: '20210324_105647.jpg', type: 'image' },
+            { name: '20210324_105651.jpg', type: 'image' },
+            { name: '20210324_105654.jpg', type: 'image' },
+            { name: '20210422_234728.jpg', type: 'image' },
+            { name: '20210427_223047.jpg', type: 'image' },
+            { name: '20210427_223108.jpg', type: 'image' },
+            { name: '20210429_215959.jpg', type: 'image' },
+            { name: '20210503_024249.jpg', type: 'image' },
+            { name: '20210503_025223.jpg', type: 'image' },
+            { name: '20210519_185939.jpg', type: 'image' },
+            { name: '20210525_004657.jpg', type: 'image' },
+            { name: '20210530_231552.jpg', type: 'image' },
+            { name: '20210531_014326.jpg', type: 'image' },
+            { name: '20210606_024145.jpg', type: 'image' },
+            { name: '20210720_222439.jpg', type: 'image' },
+            { name: '20210724_161130.jpg', type: 'image' },
+            { name: '20210806_034356.jpg', type: 'image' },
+            { name: '20210810_001011.jpg', type: 'image' },
+            { name: '20210810_001021.jpg', type: 'image' },
+            { name: '20210911_221416.jpg', type: 'image' },
+            { name: '20210911_221423.jpg', type: 'image' },
+            { name: '20210911_221427.jpg', type: 'image' },
+            { name: '20211111_060555.jpg', type: 'image' },
+            { name: '20211115_192001.jpg', type: 'image' },
+            { name: '20220111_171050.jpg', type: 'image' },
+            { name: '20220111_171053.jpg', type: 'image' },
+            { name: '20220210_235501.mp4', type: 'video' },
+            { name: '20220401_150921.jpg', type: 'image' },
+            { name: '20220420_211304.jpg', type: 'image' },
+            { name: '20220420_211318.jpg', type: 'image' },
+            { name: '20220420_211321.jpg', type: 'image' },
+            { name: '20220420_211333.jpg', type: 'image' },
+            { name: '20220420_211336.jpg', type: 'image' },
+            { name: '20220420_211349.jpg', type: 'image' },
+            { name: '20220420_211400.jpg', type: 'image' },
+            { name: '20220601_135053.jpg', type: 'image' },
+            { name: '20220601_135110.jpg', type: 'image' },
+            { name: '20220601_135139.jpg', type: 'image' },
+            { name: '20220601_135148.jpg', type: 'image' },
+            { name: '20220708_055000.jpg', type: 'image' },
+            { name: '20220708_055031.jpg', type: 'image' },
+            { name: '20220731_023601.jpg', type: 'image' },
+            { name: '20220928_142657.jpg', type: 'image' },
+            { name: '20221006_141811.jpg', type: 'image' },
+            { name: '20221006_162006.jpg', type: 'image' },
+            { name: '20221006_162044.jpg', type: 'image' },
+            { name: '20221006_162156.jpg', type: 'image' },
+            { name: '20221009_125816.jpg', type: 'image' },
+            { name: '20221010_190005.jpg', type: 'image' },
+            { name: '20221010_190323.jpg', type: 'image' },
+            { name: '20221010_190348.jpg', type: 'image' },
+            { name: '20221021_192818.jpg', type: 'image' },
+            { name: '20221021_192828.jpg', type: 'image' },
+            { name: '20221021_193013.jpg', type: 'image' },
+            { name: '20221021_193018.jpg', type: 'image' },
+            { name: '20221022_105546.jpg', type: 'image' },
+            { name: '20221022_105611.jpg', type: 'image' },
+            { name: '20221103_151813.jpg', type: 'image' },
+            { name: '20221103_151818.jpg', type: 'image' },
+            { name: '20221103_152222.jpg', type: 'image' },
+            { name: '20221103_152227.jpg', type: 'image' },
+            { name: '20221103_152230.jpg', type: 'image' },
+            { name: '20221103_154720.jpg', type: 'image' },
+            { name: '20221103_154723.jpg', type: 'image' },
+            { name: '20221103_154725.jpg', type: 'image' },
+            { name: '20221103_154830.jpg', type: 'image' },
+            { name: '20221103_154833.jpg', type: 'image' },
+            { name: 'FB_IMG_1602489939596.jpg', type: 'image' },
+            { name: 'FB_IMG_1602489944127.jpg', type: 'image' },
+            { name: 'FB_IMG_1605280009689.jpg', type: 'image' },
+            { name: 'FB_IMG_1616253500810.jpg', type: 'image' },
+            { name: 'FB_IMG_1666842983655.jpg', type: 'image' },
+            { name: 'IMG-20230623-WA0006.jpg', type: 'image' },
+            { name: 'IMG-20230623-WA0018.jpg', type: 'image' },
+            { name: 'IMG-20230623-WA0022.jpg', type: 'image' },
+            { name: 'IMG-20230623-WA0025.jpg', type: 'image' },
+            { name: 'IMG-20230623-WA0026.jpg', type: 'image' },
+            { name: 'IMG-20230623-WA0030.jpg', type: 'image' },
+            { name: 'IMG_20221028_181205_487.jpg', type: 'image' },
+            { name: 'IMG_20221028_182546_644.jpg', type: 'image' },
+            { name: 'IMG_20221030_195523_612.jpg', type: 'image' },
+            { name: 'IMG_20241106_021528_061.webp', type: 'image' }
+        ];
+
+        // Create gallery items
+        images.forEach((item) => {
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+
+            let content;
+            if (item.type === 'image') {
+                content = `<img src="photos/${item.name}" alt="Pet photo">`;
+            } else {
+                content = `<video><source src="photos/${item.name}" type="video/mp4"></video>`;
+            }
+
+            galleryItem.innerHTML = content + '<div class="overlay"></div>';
+
+            galleryItem.addEventListener('click', function() {
+                modal.style.display = 'block';
+                if (item.type === 'image') {
+                    modalContent.innerHTML = `<img src="photos/${item.name}" alt="Pet photo">`;
+                } else {
+                    modalContent.innerHTML = `<video controls><source src="photos/${item.name}" type="video/mp4"></video>`;
+                }
+            });
+
+            gallery.appendChild(galleryItem);
+        });
+
+        // Modal functionality
+        closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
