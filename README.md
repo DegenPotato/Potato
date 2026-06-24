@@ -4,7 +4,7 @@ A beautiful tribute to beloved pets. This gallery preserves cherished moments an
 
 ## View the Gallery
 
-Visit the live gallery at: [GitHub Pages Link](https://degenPotato.github.io/Potato)
+Visit the live gallery at: **https://degenpotato.github.io/Potato/**
 
 ## Features
 
