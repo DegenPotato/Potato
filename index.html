@@ -79,6 +79,109 @@
             font-weight: 300;
         }
 
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 22px;
+            padding: 14px 28px;
+            font-size: 1.05em;
+            font-weight: 500;
+            color: #3a7a93;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px) saturate(160%);
+            -webkit-backdrop-filter: blur(12px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 999px;
+            box-shadow: 0 6px 20px rgba(99, 161, 196, 0.3),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.7);
+            transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                        box-shadow 0.3s ease, background 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            background: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 12px 30px rgba(99, 161, 196, 0.45),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.8);
+        }
+
+        .download-btn:active {
+            transform: translateY(-1px) scale(0.99);
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 26px;
+        }
+
+        .tool-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 22px;
+            font-size: 0.98em;
+            font-weight: 500;
+            color: #3a7a93;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.28);
+            backdrop-filter: blur(12px) saturate(160%);
+            -webkit-backdrop-filter: blur(12px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 999px;
+            box-shadow: 0 6px 18px rgba(99, 161, 196, 0.25),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.65);
+            transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .tool-btn:hover:not([disabled]) {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.42);
+        }
+
+        .tool-btn.active {
+            background: rgba(58, 122, 147, 0.85);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .tool-btn[disabled] {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            background: rgba(58, 122, 147, 0.92);
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+
+        .gallery.selecting .gallery-item { cursor: pointer; }
+
+        .gallery-item.selected {
+            outline: 3px solid rgba(58, 122, 147, 0.9);
+            outline-offset: -3px;
+        }
+
+        .gallery-item.selected .checkmark { display: flex; }
+
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -249,7 +352,16 @@
         <header>
             <h1>🐾 Pet Memories 🐾</h1>
             <p class="subtitle">Precious moments with beloved companions</p>
+            <a class="download-btn" href="https://github.com/DegenPotato/Potato/archive/refs/heads/main.zip" download>
+                ⬇️ Download all photos &amp; videos
+            </a>
         </header>
+
+        <div class="toolbar">
+            <button class="tool-btn" id="selectToggle">✓ Select photos</button>
+            <button class="tool-btn" id="downloadSelected" style="display:none;" disabled>⬇️ Download selected (<span id="selCount">0</span>)</button>
+            <button class="tool-btn" id="clearSel" style="display:none;">Clear</button>
+        </div>
 
         <div class="gallery" id="gallery">
             <!-- Images will be loaded here by JavaScript -->
@@ -266,6 +378,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         const gallery = document.getElementById('gallery');
         const modal = document.getElementById('modal');
@@ -516,6 +629,40 @@
             { name: 'IMG_20241106_021528_061.webp', type: 'image' }
         ];
 
+        // ----- Batch selection -----
+        let selectMode = false;
+        const selected = new Set();
+        const selectToggle = document.getElementById('selectToggle');
+        const downloadSelected = document.getElementById('downloadSelected');
+        const selCount = document.getElementById('selCount');
+        const clearSel = document.getElementById('clearSel');
+
+        function updateToolbar() {
+            selCount.textContent = selected.size;
+            downloadSelected.style.display = selectMode ? 'inline-flex' : 'none';
+            clearSel.style.display = (selectMode && selected.size) ? 'inline-flex' : 'none';
+            if (selected.size === 0) downloadSelected.setAttribute('disabled', '');
+            else downloadSelected.removeAttribute('disabled');
+        }
+
+        selectToggle.addEventListener('click', () => {
+            selectMode = !selectMode;
+            selectToggle.classList.toggle('active', selectMode);
+            selectToggle.textContent = selectMode ? '✖ Cancel selecting' : '✓ Select photos';
+            gallery.classList.toggle('selecting', selectMode);
+            if (!selectMode) {
+                selected.clear();
+                document.querySelectorAll('.gallery-item.selected').forEach(el => el.classList.remove('selected'));
+            }
+            updateToolbar();
+        });
+
+        clearSel.addEventListener('click', () => {
+            selected.clear();
+            document.querySelectorAll('.gallery-item.selected').forEach(el => el.classList.remove('selected'));
+            updateToolbar();
+        });
+
         // Create gallery items
         images.forEach((item) => {
             const galleryItem = document.createElement('div');
@@ -523,14 +670,25 @@
 
             let content;
             if (item.type === 'image') {
-                content = `<img src="photos/${item.name}" alt="Pet photo">`;
+                content = `<img src="photos/${item.name}" alt="Pet photo" loading="lazy">`;
             } else {
-                content = `<video><source src="photos/${item.name}" type="video/mp4"></video>`;
+                content = `<video preload="metadata"><source src="photos/${item.name}" type="video/mp4"></video>`;
             }
 
-            galleryItem.innerHTML = content + '<div class="overlay"></div>';
+            galleryItem.innerHTML = content + '<div class="overlay"></div><div class="checkmark">✓</div>';
 
             galleryItem.addEventListener('click', function() {
+                if (selectMode) {
+                    if (selected.has(item.name)) {
+                        selected.delete(item.name);
+                        galleryItem.classList.remove('selected');
+                    } else {
+                        selected.add(item.name);
+                        galleryItem.classList.add('selected');
+                    }
+                    updateToolbar();
+                    return;
+                }
                 modal.style.display = 'block';
                 if (item.type === 'image') {
                     modalContent.innerHTML = `<img src="photos/${item.name}" alt="Pet photo">`;
@@ -540,6 +698,35 @@
             });
 
             gallery.appendChild(galleryItem);
+        });
+
+        // Zip and download the selected media
+        downloadSelected.addEventListener('click', async () => {
+            if (!selected.size) return;
+            const names = [...selected];
+            const label = downloadSelected.innerHTML;
+            downloadSelected.setAttribute('disabled', '');
+            const zip = new JSZip();
+            let done = 0;
+            for (const name of names) {
+                downloadSelected.textContent = `Zipping ${++done}/${names.length}…`;
+                try {
+                    const res = await fetch(`photos/${name}`);
+                    if (res.ok) zip.file(name, await res.blob());
+                } catch (e) { console.error('Failed to fetch', name, e); }
+            }
+            downloadSelected.textContent = 'Building zip…';
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pet-memories-selection.zip';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            downloadSelected.innerHTML = label;
+            updateToolbar();
         });
 
         // Modal functionality
